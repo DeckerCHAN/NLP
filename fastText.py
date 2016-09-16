@@ -25,7 +25,7 @@ unknown_word_id = 0
 
 
 def create_label_vec(label):
-   # Generate a label vector for a given classification label.
+    #Generate a label vector for a given classification label.
 
 
 def tokenize(sens):
