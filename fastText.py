@@ -27,7 +27,9 @@ unknown_word_id = 0
 
 
 def create_label_vec(label):
-    pass
+    label_vec = [0] * num_classes
+    label_vec[label_to_id.get(''.join(e for e in label if e.isalnum()))] = 1
+    return label_vec
 
 
 def tokenize(sens):
@@ -42,7 +44,7 @@ def map_word_to_id(word_to_id, word):
     if word in word_to_id:
         return word_to_id[word]
     else:
-        return word_to_id['PAD']
+        return word_to_id['world']
 
 
 def build_vocab(sens_file_name):
@@ -68,14 +70,14 @@ def read_labeled_data_set(sens_file_name, label_file_name, word_to_id):
     for label in label_file:
         sens = sens_file.readline()
         word_id_seq = map_token_seq_to_word_id_seq(tokenize(sens), word_to_id)
-        data.append((word_id_seq, create_label_vec(label)))
+        data.append(Dataset(word_id_seq, label))
     print("read %d sentences from %s ." % (len(data), sens_file_name))
     sens_file.close()
     label_file.close()
     return data
 
 
-def read_dataset(sens_file_name, word_to_id):
+def read_data_set(sens_file_name, word_to_id):
     sens_file = open(sens_file_name)
     data = []
     for sens in sens_file:
@@ -88,11 +90,22 @@ def read_dataset(sens_file_name, word_to_id):
 
 def eval(word_to_id, train_dataset, dev_dataset, test_dataset):
     # Initialize the placeholders and Variables. E.g.
+    num_words = len(word_to_id)
+    input_sens = tf.placeholder(tf.int32, shape=[None])
     correct_label = tf.placeholder(tf.float32, shape=[num_classes])
     # Hint: use [None] when you are not certain about the value of shape
+    embeddings = tf.Variable(tf.random_uniform([num_classes, embedding_dim], -1.0, 1.0))
+
     test_results = []
 
     with tf.Session() as sess:
+        embed = tf.nn.embedding_lookup(embeddings, input_sens)
+        tmp_m = tf.reduce_sum(embed, 0)
+        sum_rep = tf.reshape(tmp_m, [1, embedding_dim])
+
+        y = tf.nn.softmax(tf.matmul(sum_rep, embeddings, transpose_b=True))
+        cross_entropy = tf.reduce_mean(-tf.reduce_sum(correct_label * tf.log(y), reduction_indices=[1]))
+
         # Write code for constructing computation graph here.
         # Hint:
         #    1. Find the math operations at https://www.tensorflow.org/versions/r0.10/api_docs/python/math_ops.html
@@ -106,13 +119,23 @@ def eval(word_to_id, train_dataset, dev_dataset, test_dataset):
 
         sess.run(tf.initialize_all_variables())
         # In this assignment it is sufficient to use GradientDescentOptimizer, you are not required to implement a regularizer.
-
+        train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(cross_entropy)
         for epoch in range(num_epochs):
             shuffle(train_dataset)
             # Writing the code for training. It is not required to use a batch with size larger than one.
+            for train_data in train_dataset:
+                # Run one step of SGD to update word embeddings.
+                print("Start to processing %s : %s" % (
+                    [id for id in train_data.sentences], create_label_vec(train_data.labels)))
 
-            # The following line computes the accuracy on the development dataset in each epoch.
-            print('Epoch %d : %s .' % (epoch, compute_accuracy(accuracy, input_sens, correct_label, dev_dataset)))
+                train_step.run(feed_dict={input_sens: train_data.sentences,
+                                          correct_label: create_label_vec(train_data.labels)})
+
+                print("Finished to processing %s : %s" % (
+                    [id for id in train_data.sentences], create_label_vec(train_data.labels)))
+
+                # The following line computes the accuracy on the development dataset in each epoch.
+                # print('Epoch %d : %s .' % (epoch, compute_accuracy(accuracy, input_sens, correct_label, dev_dataset)))
 
         # uncomment the following line in the grading lab for evaluation
         # print('Accuracy on the test set : %s.' % compute_accuracy(accuracy,input_sens, correct_label, test_dataset))
@@ -134,6 +157,11 @@ def predict(prediction, input_sens, test_dataset):
     for (sens, label) in test_dataset:
         test_results.append(prediction.eval(feed_dict={input_sens: sens}))
     return test_results
+
+
+def print_dataset(dataset):
+    for data in dataset:
+        print("%s : %s" % ([id for id in data.sentences], data.labels))
 
 
 def write_result_file(test_results, result_file):
@@ -173,9 +201,15 @@ def main(argv):
 
         ## Please write the main procedure here by calling appropriate methods.
         word_to_id = build_vocab(devSensFile)
-        data = read_labeled_data_set(devSensFile, devLabelFile, word_to_id)
-        print(word_to_id)
 
+        labeled_train_data_set = read_labeled_data_set(trainSensFile, trainLabelFile, word_to_id)
+        print("Finished process train data set")
+
+        labeled_dev_data_set = read_labeled_data_set(devSensFile, devLabelFile, word_to_id)
+        print("Finished process develop data set")
+        # labeled_test_data_set = read_labeled_data_set(testSensFile, testLabelFile, word_to_id)
+
+        print(eval(word_to_id, labeled_train_data_set, None, labeled_dev_data_set))
 
 
 if __name__ == "__main__":
