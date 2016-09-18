@@ -5,7 +5,9 @@ import math
 import os
 import random
 
+import nltk
 import numpy as np
+from nltk import word_tokenize
 import tensorflow as tf
 from random import shuffle
 
@@ -14,29 +16,33 @@ import os
 
 from collections import namedtuple
 
-Dataset = namedtuple('Dataset','sentences labels')
+Dataset = namedtuple('Dataset', 'sentences labels')
 
 num_classes = 3
 learning_rate = 0.05
 num_epochs = 2
 embedding_dim = 10
-label_to_id = {'World':0, 'Entertainment':1, 'Sports':2}
+label_to_id = {'World': 0, 'Entertainment': 1, 'Sports': 2}
 unknown_word_id = 0
 
 
 def create_label_vec(label):
-    #Generate a label vector for a given classification label.
+    pass
 
 
 def tokenize(sens):
-    # Tokenize a given sentence into a sequence of tokens.
+    return word_tokenize(sens)
+
 
 def map_token_seq_to_word_id_seq(token_seq, word_to_id):
-    return [map_word_to_id(word_to_id,word) for word in token_seq]
+    return [map_word_to_id(word_to_id, word) for word in token_seq]
 
 
 def map_word_to_id(word_to_id, word):
-    # map each word to its id.
+    if word in word_to_id:
+        return word_to_id[word]
+    else:
+        return word_to_id['PAD']
 
 
 def build_vocab(sens_file_name):
@@ -55,7 +61,7 @@ def build_vocab(sens_file_name):
     return word_to_id
 
 
-def read_labeled_dataset(sens_file_name, label_file_name, word_to_id):
+def read_labeled_data_set(sens_file_name, label_file_name, word_to_id):
     sens_file = open(sens_file_name)
     label_file = open(label_file_name)
     data = []
@@ -67,6 +73,7 @@ def read_labeled_dataset(sens_file_name, label_file_name, word_to_id):
     sens_file.close()
     label_file.close()
     return data
+
 
 def read_dataset(sens_file_name, word_to_id):
     sens_file = open(sens_file_name)
@@ -92,7 +99,7 @@ def eval(word_to_id, train_dataset, dev_dataset, test_dataset):
         #    2. Try to reuse/modify the code from tensorflow tutorial.
         #    3. Use tf.reshape if the shape information of a tensor gets lost during the contruction of computation graph.
 
-        #evaluation code, assume y is the estimated probability vector of each class
+        # evaluation code, assume y is the estimated probability vector of each class
         correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(correct_label, 0))
         accuracy = tf.cast(correct_prediction, tf.float32)
         prediction = tf.cast(tf.argmax(y, 1), tf.int32)
@@ -105,7 +112,7 @@ def eval(word_to_id, train_dataset, dev_dataset, test_dataset):
             # Writing the code for training. It is not required to use a batch with size larger than one.
 
             # The following line computes the accuracy on the development dataset in each epoch.
-            print('Epoch %d : %s .' % (epoch,compute_accuracy(accuracy,input_sens, correct_label, dev_dataset)))
+            print('Epoch %d : %s .' % (epoch, compute_accuracy(accuracy, input_sens, correct_label, dev_dataset)))
 
         # uncomment the following line in the grading lab for evaluation
         # print('Accuracy on the test set : %s.' % compute_accuracy(accuracy,input_sens, correct_label, test_dataset))
@@ -114,7 +121,7 @@ def eval(word_to_id, train_dataset, dev_dataset, test_dataset):
     return test_results
 
 
-def compute_accuracy(accuracy,input_sens, correct_label, eval_dataset):
+def compute_accuracy(accuracy, input_sens, correct_label, eval_dataset):
     num_correct = 0
     for (sens, label) in eval_dataset:
         num_correct += accuracy.eval(feed_dict={input_sens: sens, correct_label: label})
@@ -131,8 +138,8 @@ def predict(prediction, input_sens, test_dataset):
 
 def write_result_file(test_results, result_file):
     with open(result_file, mode='w') as f:
-         for r in test_results:
-             f.write("%d\n" % r)
+        for r in test_results:
+            f.write("%d\n" % r)
 
 
 def main(argv):
@@ -144,7 +151,7 @@ def main(argv):
     testLabelFile = ''
     testResultFile = ''
     try:
-        opts, args = getopt.getopt(argv,"hd:",["dataFolder="])
+        opts, args = getopt.getopt(argv, "hd:", ["dataFolder="])
     except getopt.GetoptError:
         print('fastText.py -d <dataFolder>')
         sys.exit(2)
@@ -159,12 +166,17 @@ def main(argv):
             trainLabelFile = os.path.join(arg, 'labels_train.txt')
             devLabelFile = os.path.join(arg, 'labels_dev.txt')
             ## uncomment the following line in the grading lab
-            #testLabelFile = os.path.join(arg, 'labels_test.txt')
+            # testLabelFile = os.path.join(arg, 'labels_test.txt')
             testResultFile = os.path.join(arg, 'test_results.txt')
         else:
             print("unknown option %s ." % opt)
-    ## Please write the main procedure here by calling appropriate methods.
+
+        ## Please write the main procedure here by calling appropriate methods.
+        word_to_id = build_vocab(devSensFile)
+        data = read_labeled_data_set(devSensFile, devLabelFile, word_to_id)
+        print(word_to_id)
+
 
 
 if __name__ == "__main__":
-   main(sys.argv[1:])
+    main(sys.argv[1:])
