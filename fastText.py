@@ -134,7 +134,7 @@ def eval(word_to_id, train_dataset, dev_dataset, test_dataset):
             print('Epoch %d : %s .' % (epoch, compute_accuracy(accuracy, input_sens, correct_label, dev_dataset)))
 
         # uncomment the following line in the grading lab for evaluation
-        # print('Accuracy on the test set : %s.' % compute_accuracy(accuracy,input_sens, correct_label, test_dataset))
+        print('Accuracy on the test set : %s.' % compute_accuracy(accuracy,input_sens, correct_label, test_dataset))
         # input_sens is the placeholder of an input sentence.
         test_results = predict(prediction, input_sens, test_dataset)
     return test_results
