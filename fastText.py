@@ -33,7 +33,7 @@ def create_label_vec(label):
 
 
 def tokenize(sens):
-    return word_tokenize(sens)
+    return word_tokenize(sens.strip())
 
 
 def map_token_seq_to_word_id_seq(token_seq, word_to_id):
@@ -95,11 +95,12 @@ def eval(word_to_id, train_dataset, dev_dataset, test_dataset):
     correct_label = tf.placeholder(tf.float32, shape=[num_classes])
     # Hint: use [None] when you are not certain about the value of shape
     embeddings = tf.Variable(tf.random_uniform([num_classes, embedding_dim], -1.0, 1.0))
+    embeddings_new = tf.Variable(tf.random_uniform([num_words ,embedding_dim], -1.0, 1.0))
 
     test_results = []
 
     with tf.Session() as sess:
-        embed = tf.nn.embedding_lookup(embeddings, input_sens)
+        embed = tf.nn.embedding_lookup(embeddings_new, input_sens)
         tmp_m = tf.reduce_sum(embed, 0)
         sum_rep = tf.reshape(tmp_m, [1, embedding_dim])
 
@@ -124,18 +125,13 @@ def eval(word_to_id, train_dataset, dev_dataset, test_dataset):
             shuffle(train_dataset)
             # Writing the code for training. It is not required to use a batch with size larger than one.
             for train_data in train_dataset:
-                # Run one step of SGD to update word embeddings.
-                print("Start to processing %s : %s" % (
-                    [id for id in train_data.sentences], create_label_vec(train_data.labels)))
 
+                # Run one step of SGD to update word embeddings.
                 train_step.run(feed_dict={input_sens: train_data.sentences,
                                           correct_label: create_label_vec(train_data.labels)})
 
-                print("Finished to processing %s : %s" % (
-                    [id for id in train_data.sentences], create_label_vec(train_data.labels)))
-
                 # The following line computes the accuracy on the development dataset in each epoch.
-                # print('Epoch %d : %s .' % (epoch, compute_accuracy(accuracy, input_sens, correct_label, dev_dataset)))
+            print('Epoch %d : %s .' % (epoch, compute_accuracy(accuracy, input_sens, correct_label, dev_dataset)))
 
         # uncomment the following line in the grading lab for evaluation
         # print('Accuracy on the test set : %s.' % compute_accuracy(accuracy,input_sens, correct_label, test_dataset))
@@ -147,14 +143,14 @@ def eval(word_to_id, train_dataset, dev_dataset, test_dataset):
 def compute_accuracy(accuracy, input_sens, correct_label, eval_dataset):
     num_correct = 0
     for (sens, label) in eval_dataset:
-        num_correct += accuracy.eval(feed_dict={input_sens: sens, correct_label: label})
+                num_correct += accuracy.eval(feed_dict={input_sens: sens, correct_label: create_label_vec(label)})
     print('#correct sentences is %s ' % num_correct)
     return num_correct / len(eval_dataset)
 
 
 def predict(prediction, input_sens, test_dataset):
     test_results = []
-    for (sens, label) in test_dataset:
+    for (sens) in test_dataset:
         test_results.append(prediction.eval(feed_dict={input_sens: sens}))
     return test_results
 
@@ -209,7 +205,10 @@ def main(argv):
         print("Finished process develop data set")
         # labeled_test_data_set = read_labeled_data_set(testSensFile, testLabelFile, word_to_id)
 
-        print(eval(word_to_id, labeled_train_data_set, None, labeled_dev_data_set))
+        result = eval(word_to_id, labeled_train_data_set, labeled_dev_data_set, read_data_set(testSensFile, word_to_id))
+        
+        write_result_file(result, testResultFile)
+
 
 
 if __name__ == "__main__":
